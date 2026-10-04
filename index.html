@@ -283,7 +283,6 @@ p { color: var(--muted); line-height: 1.6; }
 }
 .keys { font-size: 11px; color: var(--muted); line-height: 2.1; }
 .keys b { color: var(--text); }
-.tempo-note { font-size: 10px; line-height: 1.5; color: var(--muted); }
 .mobile-controls { display: none; }
 body.mobile .side { display: none; }
 body.mobile .arena {
@@ -436,7 +435,7 @@ body.mobile .mobile-controls {
 
     <p class="note">
       Каждая линия: +100 монет и +100 XP.<br>
-      Каждые 5 установленных фигур — немного быстрее.<br>
+      Каждая установленная фигура ускоряет игру на 8%.<br>
       Прогресс сохраняется автоматически.
     </p>
   </section>
@@ -477,7 +476,6 @@ body.mobile .mobile-controls {
       <div class="progress"><i data-progress></i></div>
       <div class="progress-info">
         <span>Линии: <b id="runLines">0</b> · Фигуры: <b id="pieceCount">0</b></span>
-        <span>Темп: <b id="tempoSmall">1</b></span>
         <span data-progress-text>0 / 1000 XP</span>
       </div>
     </div>
@@ -489,12 +487,6 @@ body.mobile .mobile-controls {
       <aside class="side panel">
         <span class="label">Следующая</span>
         <canvas id="next"></canvas>
-        <hr>
-        <span class="label">Темп</span>
-        <strong id="tempoLabel" class="value">1</strong>
-        <p class="tempo-note">
-          Каждые 5 фигур интервал падения уменьшается на 5%.
-        </p>
         <hr>
         <div class="keys">
           <b>← →</b> движение<br>
@@ -761,16 +753,13 @@ body.mobile .mobile-controls {
     document.documentElement.style.setProperty("--rgb", rgb.join(","));
   }
 
-  function tempo() {
-    return 1 + Math.floor(placedPieces / 5);
-  }
-
   function fallInterval() {
-    // Ускорение только за установленные фигуры:
-    // 0–4: 0.85с, 5–9: 0.8075с, 10–14: 0.767125с...
+    // Ускорение за каждую установленную фигуру:
+    // интервал умножается на 0.92 (темп +8%) после каждой фигуры.
+    // 0: 0.85с, 1: 0.782с, 2: 0.71944с... не ниже MIN_INTERVAL.
     return Math.max(
       MIN_INTERVAL,
-      BASE_INTERVAL * Math.pow(.95, Math.floor(placedPieces / 5))
+      BASE_INTERVAL * Math.pow(.92, placedPieces)
     );
   }
 
@@ -795,8 +784,6 @@ body.mobile .mobile-controls {
 
     $("runLines").textContent = format(lines);
     $("pieceCount").textContent = format(placedPieces);
-    $("tempoSmall").textContent = format(tempo());
-    $("tempoLabel").textContent = format(tempo());
   }
 
   function activeModal() {
@@ -1150,15 +1137,6 @@ body.mobile .mobile-controls {
       y: bottom + 1,
       life: .28
     });
-
-    if (placedPieces % 5 === 0) {
-      popups.push({
-        text: "ТЕМП " + tempo() + " ↑",
-        y: 3,
-        life: 1.3,
-        maxLife: 1.3
-      });
-    }
 
     const fullRows = [];
     for (let y = 0; y < ROWS; y++) {
