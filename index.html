@@ -1,0 +1,1583 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#080d19">
+<title>NEON TETRIS</title>
+<style>
+:root {
+  --accent: #37e8ff;
+  --accent-rgb: 55, 232, 255;
+  --text: #edf4ff;
+  --muted: #90a1bc;
+  --panel: rgba(13, 22, 39, .88);
+  --border: rgba(160, 185, 230, .13);
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+html {
+  min-height: 100%;
+  background: #080d19;
+  color-scheme: dark;
+}
+body {
+  margin: 0;
+  min-height: 100vh;
+  min-height: 100dvh;
+  color: var(--text);
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  overflow-x: hidden;
+  -webkit-tap-highlight-color: transparent;
+}
+button { font: inherit; }
+button, a { touch-action: manipulation; }
+button {
+  cursor: pointer;
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: rgba(28, 40, 63, .75);
+  min-height: 48px;
+  padding: 12px 20px;
+  font-weight: 700;
+  transition:
+    transform .16s ease,
+    background .2s ease,
+    box-shadow .2s ease,
+    border-color .2s ease;
+}
+button:hover {
+  background: rgba(43, 59, 87, .9);
+  border-color: rgba(var(--accent-rgb), .55);
+}
+button:active { transform: scale(.96); }
+button:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 4px;
+}
+.primary {
+  background: rgba(var(--accent-rgb), .13);
+  border-color: rgba(var(--accent-rgb), .6);
+  box-shadow: 0 0 24px rgba(var(--accent-rgb), .1);
+}
+.primary:hover {
+  background: rgba(var(--accent-rgb), .23);
+  box-shadow: 0 0 32px rgba(var(--accent-rgb), .18);
+}
+.danger { color: #ffb7c5; }
+#ambient {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 0;
+}
+.app {
+  position: relative;
+  z-index: 1;
+  max-width: 1100px;
+  margin: auto;
+  padding: 20px 22px;
+  padding-bottom: max(20px, env(safe-area-inset-bottom));
+}
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  margin-bottom: 20px;
+}
+.brand {
+  font-weight: 900;
+  font-size: 19px;
+  letter-spacing: 4px;
+}
+.brand span { color: var(--accent); }
+.badge {
+  color: var(--muted);
+  font-size: 11px;
+  letter-spacing: 2px;
+  border: 1px solid var(--border);
+  padding: 8px 12px;
+  border-radius: 30px;
+}
+.screen { animation: enter .35s ease both; }
+@keyframes enter {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.panel {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 24px;
+  box-shadow: 0 24px 80px rgba(0, 0, 0, .26);
+  backdrop-filter: blur(18px);
+}
+.menu {
+  max-width: 650px;
+  margin: max(20px, 5vh) auto 0;
+  padding: 42px;
+  text-align: center;
+}
+.eyebrow {
+  color: var(--accent);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 4px;
+}
+h1 {
+  margin: 15px 0 12px;
+  font-size: clamp(42px, 8vw, 76px);
+  line-height: .98;
+  letter-spacing: -3px;
+}
+h1 span {
+  color: var(--accent);
+  text-shadow: 0 0 35px rgba(var(--accent-rgb), .3);
+}
+h2 { margin: 0 0 12px; font-size: 27px; }
+p {
+  color: var(--muted);
+  line-height: 1.6;
+  margin: 10px 0 20px;
+}
+.stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  margin: 27px 0 16px;
+}
+.stat {
+  padding: 16px 10px;
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  background: rgba(255, 255, 255, .025);
+  min-width: 0;
+}
+.label {
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 1.6px;
+  text-transform: uppercase;
+}
+.value {
+  display: block;
+  font-size: clamp(18px, 3vw, 26px);
+  font-weight: 800;
+  margin-top: 7px;
+  overflow-wrap: anywhere;
+  font-variant-numeric: tabular-nums;
+}
+.coin-value { color: #ffd778; }
+.progress {
+  height: 7px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, .07);
+  overflow: hidden;
+}
+.progress > i {
+  display: block;
+  height: 100%;
+  width: 0;
+  border-radius: inherit;
+  background: var(--accent);
+  box-shadow: 0 0 12px rgba(var(--accent-rgb), .6);
+  transition: width .4s ease, background .3s ease;
+}
+.progress-info {
+  display: flex;
+  justify-content: space-between;
+  margin: 8px 0 22px;
+  font-size: 12px;
+  color: var(--muted);
+}
+.menu-actions { display: grid; gap: 12px; }
+.menu-actions .primary { min-height: 58px; font-size: 18px; }
+.small-note { font-size: 12px; margin: 20px 0 0; }
+.shop {
+  max-width: 820px;
+  margin: 25px auto;
+  padding: 28px;
+}
+.section-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 15px;
+}
+.wallet {
+  color: #ffd778;
+  font-weight: 800;
+  white-space: nowrap;
+}
+.palette {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+  margin: 24px 0;
+}
+.color-card {
+  position: relative;
+  padding: 18px 10px;
+  min-height: 145px;
+  display: flex;
+  align-items: center;
+  flex-direction: column;
+  justify-content: center;
+  gap: 10px;
+}
+.color-card.active {
+  border-color: var(--swatch);
+  background: rgba(255, 255, 255, .055);
+}
+.swatch {
+  width: 39px;
+  height: 39px;
+  border-radius: 12px;
+  background: var(--swatch);
+  box-shadow: 0 0 25px var(--swatch);
+}
+.color-name { font-size: 13px; }
+.color-price { color: var(--muted); font-size: 11px; }
+.active-mark {
+  position: absolute;
+  top: 8px;
+  right: 9px;
+  font-size: 10px;
+  color: var(--swatch);
+}
+.game-top {
+  max-width: 780px;
+  margin: 0 auto 14px;
+}
+.hud {
+  display: grid;
+  grid-template-columns: 1fr 1fr .75fr auto;
+  gap: 10px;
+  align-items: center;
+}
+.hud .stat { padding: 10px 13px; }
+.hud .value { font-size: 20px; margin-top: 4px; }
+.pause-button { padding: 12px 16px; }
+.game-progress { margin-top: 10px; }
+.game-progress .progress-info { margin: 6px 0 0; }
+.arena {
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 22px;
+  height: min(640px, calc(100dvh - 215px));
+  min-height: 290px;
+}
+.board-shell {
+  position: relative;
+  height: 100%;
+  aspect-ratio: 1 / 2;
+  flex-shrink: 0;
+  border-radius: 15px;
+  border: 1px solid rgba(var(--accent-rgb), .38);
+  overflow: hidden;
+  background: #080e1c;
+  box-shadow:
+    0 0 35px rgba(var(--accent-rgb), .09),
+    0 18px 50px rgba(0, 0, 0, .35);
+}
+#board { display: block; width: 100%; height: 100%; }
+.side {
+  width: 175px;
+  padding: 19px;
+  border-radius: 18px;
+}
+#next { width: 120px; height: 100px; display: block; margin: 10px auto; }
+.side hr { border: 0; border-top: 1px solid var(--border); margin: 18px 0; }
+.side .value { font-size: 26px; }
+.keys { font-size: 12px; line-height: 2.1; color: var(--muted); }
+.keys b { color: var(--text); }
+.mobile-controls { display: none; }
+body.mobile .mobile-controls {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 9px;
+  max-width: 460px;
+  margin: 14px auto 0;
+  user-select: none;
+  -webkit-user-select: none;
+}
+.control {
+  min-height: 63px;
+  padding: 8px 4px;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+}
+.control b { display: block; font-size: 23px; line-height: 1.1; }
+.control small { display: block; margin-top: 5px; font-size: 10px; }
+.control.hard { grid-column: span 4; min-height: 49px; }
+body.mobile .side { display: none; }
+body.mobile .arena {
+  height: min(640px, calc(100dvh - 335px));
+  min-height: 220px;
+}
+.overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  background: rgba(2, 6, 15, .74);
+  backdrop-filter: blur(12px);
+  animation: veil .22s ease both;
+}
+@keyframes veil { from { opacity: 0; } to { opacity: 1; } }
+.dialog {
+  width: min(100%, 470px);
+  max-height: 90dvh;
+  overflow-y: auto;
+  padding: 32px;
+  text-align: center;
+  animation: enter .25s ease both;
+}
+.dialog .stats { margin: 20px 0; }
+.dialog-actions { display: grid; gap: 10px; }
+.result-earned {
+  color: var(--accent);
+  font-size: 19px;
+  font-weight: 800;
+  margin: 19px 0;
+}
+#toast {
+  position: fixed;
+  bottom: max(22px, env(safe-area-inset-bottom));
+  left: 50%;
+  transform: translate(-50%, 20px);
+  z-index: 50;
+  width: max-content;
+  max-width: calc(100vw - 30px);
+  padding: 14px 20px;
+  border-radius: 14px;
+  background: #142039;
+  border: 1px solid rgba(var(--accent-rgb), .45);
+  box-shadow: 0 10px 40px #0006;
+  text-align: center;
+  font-size: 14px;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity .2s ease, transform .2s ease;
+}
+#toast.visible { opacity: 1; transform: translate(-50%, 0); }
+@media (max-width: 760px) {
+  .app { padding: 12px; padding-bottom: max(12px, env(safe-area-inset-bottom)); }
+  .header { margin-bottom: 13px; }
+  .brand { font-size: 15px; letter-spacing: 2px; }
+  .badge { font-size: 9px; padding: 6px 9px; }
+  .menu { margin-top: 20px; padding: 29px 20px; }
+  .stats { gap: 7px; }
+  .shop { padding: 22px 16px; margin-top: 15px; }
+  .palette { grid-template-columns: repeat(2, 1fr); gap: 10px; }
+  .color-card { min-height: 130px; }
+  .section-head { flex-wrap: wrap; }
+  .hud { gap: 6px; }
+  .hud .stat { padding: 9px 7px; border-radius: 12px; }
+  .hud .label { font-size: 8px; letter-spacing: 1px; }
+  .hud .value { font-size: 16px; }
+  .pause-button { padding: 10px; min-height: 50px; }
+  .game-top { margin-bottom: 11px; }
+  .dialog { padding: 26px 20px; }
+  .side { display: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: .01ms !important;
+    transition-duration: .01ms !important;
+  }
+}
+</style>
+</head>
+<body>
+<canvas id="ambient" aria-hidden="true"></canvas>
+
+<main class="app">
+  <header class="header">
+    <div class="brand">NEON <span>TETRIS</span></div>
+    <div class="badge" id="deviceBadge">KEYBOARD EDITION</div>
+  </header>
+
+  <section id="menuScreen" class="screen panel menu">
+    <div class="eyebrow">СВЕТ. РИТМ. ЛИНИИ.</div>
+    <h1>NEON<br><span>TETRIS</span></h1>
+    <p>Собирай линии. Копи монеты.<br>Создай свой неоновый стиль.</p>
+
+    <div class="stats">
+      <div class="stat"><span class="label">Монеты</span><strong class="value coin-value" data-coins>0</strong></div>
+      <div class="stat"><span class="label">Всего XP</span><strong class="value" data-xp>0</strong></div>
+      <div class="stat"><span class="label">Уровень</span><strong class="value" data-level>0</strong></div>
+    </div>
+    <div class="progress"><i data-progress></i></div>
+    <div class="progress-info"><span>До следующего уровня</span><span data-progress-text>0 / 1000 XP</span></div>
+
+    <div class="menu-actions">
+      <button id="playButton" class="primary">Играть</button>
+      <button id="shopButton">Цвет интерфейса</button>
+    </div>
+    <p class="small-note">Каждая линия: +100 монет и +100 XP.<br>Прогресс сохраняется автоматически.</p>
+  </section>
+
+  <section id="shopScreen" class="screen panel shop" hidden>
+    <div class="section-head">
+      <div>
+        <div class="eyebrow">ТВОЙ НЕОНОВЫЙ СТИЛЬ</div>
+        <h2 style="margin-top:10px">Цвет интерфейса</h2>
+      </div>
+      <div class="wallet">◈ <span data-coins>0</span></div>
+    </div>
+    <p>Каждая активация стоит <b>15 000 монет</b>, даже если этот цвет уже использовался. Постоянных разблокировок нет.</p>
+    <div id="palette" class="palette"></div>
+    <button id="shopBack">← Главное меню</button>
+  </section>
+
+  <section id="gameScreen" class="screen" hidden>
+    <div class="game-top">
+      <div class="hud">
+        <div class="stat"><span class="label">Монеты</span><strong class="value coin-value" data-coins>0</strong></div>
+        <div class="stat"><span class="label">Всего XP</span><strong class="value" data-xp>0</strong></div>
+        <div class="stat"><span class="label">Уровень</span><strong class="value" data-level>0</strong></div>
+        <button id="pauseButton" class="pause-button" aria-label="Пауза">Ⅱ</button>
+      </div>
+      <div class="game-progress">
+        <div class="progress"><i data-progress></i></div>
+        <div class="progress-info">
+          <span>Линии: <b id="runLines">0</b></span>
+          <span data-progress-text>0 / 1000 XP</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="arena">
+      <div class="board-shell">
+        <canvas id="board" aria-label="Игровое поле Тетриса 10 на 20"></canvas>
+      </div>
+      <aside class="side panel">
+        <span class="label">Следующая фигура</span>
+        <canvas id="next"></canvas>
+        <hr>
+        <span class="label">Темп</span>
+        <strong id="speedLabel" class="value">1</strong>
+        <hr>
+        <div class="keys">
+          <b>← →</b> движение<br>
+          <b>↓</b> мягкое падение<br>
+          <b>↑ / X</b> поворот<br>
+          <b>Z</b> обратный поворот<br>
+          <b>Пробел</b> сброс<br>
+          <b>P / Esc</b> пауза
+        </div>
+      </aside>
+    </div>
+
+    <div class="mobile-controls" aria-label="Сенсорное управление">
+      <button class="control" data-action="left" aria-label="Влево"><b>←</b><small>Лево</small></button>
+      <button class="control" data-action="rotate" aria-label="Повернуть"><b>↻</b><small>Поворот</small></button>
+      <button class="control" data-action="right" aria-label="Вправо"><b>→</b><small>Право</small></button>
+      <button class="control" data-action="down" aria-label="Мягкое падение"><b>↓</b><small>Падение</small></button>
+      <button class="control hard primary" data-action="hard">⇓ Мгновенное падение</button>
+    </div>
+  </section>
+</main>
+
+<div id="introModal" class="overlay" role="dialog" aria-modal="true" aria-labelledby="introTitle" hidden>
+  <div class="panel dialog">
+    <div class="eyebrow">ДОБРО ПОЖАЛОВАТЬ</div>
+    <h2 id="introTitle" style="margin-top:15px">Управление на ПК</h2>
+    <p>Используйте клавиатуру. Продолжить?</p>
+    <p style="font-size:14px">
+      ← / → — движение, ↓ — падение<br>
+      ↑ / X / Z — поворот<br>
+      Пробел — мгновенное падение<br>
+      P / Esc — пауза
+    </p>
+    <button id="introContinue" class="primary" style="width:100%">Продолжить</button>
+  </div>
+</div>
+
+<div id="pauseModal" class="overlay" role="dialog" aria-modal="true" aria-labelledby="pauseTitle" hidden>
+  <div class="panel dialog">
+    <div class="eyebrow">МОЖНО ВЫДОХНУТЬ</div>
+    <h2 id="pauseTitle" style="margin-top:15px">Пауза</h2>
+    <p>Игра и анимации игрового поля остановлены.</p>
+    <div class="dialog-actions">
+      <button id="resumeButton" class="primary">Продолжить</button>
+      <button id="pauseMenuButton">В меню</button>
+    </div>
+    <p class="small-note">При выходе заезд завершится.<br>Полученные монеты и XP сохранятся.</p>
+  </div>
+</div>
+
+<div id="overModal" class="overlay" role="dialog" aria-modal="true" aria-labelledby="overTitle" hidden>
+  <div class="panel dialog">
+    <div class="eyebrow">ЕЩЁ ОДНА ПОПЫТКА?</div>
+    <h2 id="overTitle" style="margin-top:15px">Игра окончена</h2>
+    <p>Очищено линий: <b id="resultLines">0</b></p>
+    <div id="resultEarned" class="result-earned">+0 монет · +0 XP</div>
+    <div class="stats">
+      <div class="stat"><span class="label">Баланс</span><strong class="value coin-value" data-coins>0</strong></div>
+      <div class="stat"><span class="label">Всего XP</span><strong class="value" data-xp>0</strong></div>
+      <div class="stat"><span class="label">Уровень</span><strong class="value" data-level>0</strong></div>
+    </div>
+    <div class="dialog-actions">
+      <button id="againButton" class="primary">Сыграть снова</button>
+      <button id="overMenuButton">Главное меню</button>
+    </div>
+  </div>
+</div>
+
+<div id="buyModal" class="overlay" role="dialog" aria-modal="true" aria-labelledby="buyTitle" hidden>
+  <div class="panel dialog">
+    <div class="eyebrow">АКТИВАЦИЯ ЦВЕТА</div>
+    <h2 id="buyTitle" style="margin-top:15px">Подтверждение</h2>
+    <p id="buyDescription"></p>
+    <div class="dialog-actions">
+      <button id="confirmBuy" class="primary">Активировать за 15 000</button>
+      <button id="cancelBuy">Отмена</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast" role="status" aria-live="polite"></div>
+
+<script>
+"use strict";
+
+(() => {
+  const $ = id => document.getElementById(id);
+  const COLS = 10;
+  const ROWS = 20;
+  const COLOR_PRICE = 15000;
+  const STORAGE_KEY = "neon-tetris-progress-v1";
+  const reducedMotion = matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  const palette = [
+    { id: "cyan",   name: "Неон циан",       hex: "#37e8ff" },
+    { id: "pink",   name: "Неон розовый",    hex: "#ff58bc" },
+    { id: "purple", name: "Ультрафиолет",    hex: "#ad87ff" },
+    { id: "lime",   name: "Неон лайм",       hex: "#b6ff62" },
+    { id: "gold",   name: "Неон золото",     hex: "#ffd266" },
+    { id: "orange", name: "Мандарин",        hex: "#ff9860" },
+    { id: "blue",   name: "Электрик",        hex: "#699cff" },
+    { id: "red",    name: "Коралловый",      hex: "#ff667e" },
+    { id: "mint",   name: "Мятный свет",     hex: "#59ffc2" },
+    { id: "white",  name: "Лунный белый",    hex: "#e5f2ff" }
+  ];
+
+  const SHAPES = {
+    I: [[0,0,0,0],[1,1,1,1],[0,0,0,0],[0,0,0,0]],
+    O: [[1,1],[1,1]],
+    T: [[0,1,0],[1,1,1],[0,0,0]],
+    S: [[0,1,1],[1,1,0],[0,0,0]],
+    Z: [[1,1,0],[0,1,1],[0,0,0]],
+    J: [[1,0,0],[1,1,1],[0,0,0]],
+    L: [[0,0,1],[1,1,1],[0,0,0]]
+  };
+
+  const BLOCK_COLORS = {
+    I: "#48e8ff",
+    O: "#ffe477",
+    T: "#b78cff",
+    S: "#77f6b0",
+    Z: "#ff708d",
+    J: "#729fff",
+    L: "#ffb571"
+  };
+
+  const number = value => value.toLocaleString("ru-RU");
+  const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+  const clone = matrix => matrix.map(row => [...row]);
+  const emptyBoard = () => Array.from({ length: ROWS }, () => Array(COLS).fill(null));
+
+  let storageAvailable = true;
+  let storageWarningShown = false;
+
+  function loadProgress() {
+    const fallback = { coins: 0, xp: 0, color: "cyan" };
+    try {
+      const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || "null");
+      if (!saved || typeof saved !== "object") return fallback;
+      const validNumber = n => Number.isSafeInteger(n) && n >= 0;
+      return {
+        coins: validNumber(saved.coins) ? saved.coins : 0,
+        xp: validNumber(saved.xp) ? saved.xp : 0,
+        color: palette.some(c => c.id === saved.color) ? saved.color : "cyan"
+      };
+    } catch {
+      storageAvailable = false;
+      return fallback;
+    }
+  }
+
+  const progress = loadProgress();
+  let accent = palette.find(c => c.id === progress.color).hex;
+  let currentScreen = "menu";
+  let mode = "menu";
+  let mobile = false;
+  let pendingColor = null;
+  let toastTimer = 0;
+  let previousFocus = null;
+
+  let board = emptyBoard();
+  let player = null;
+  let nextType = null;
+  let bag = [];
+  let lines = 0;
+  let dropClock = 0;
+  let lockClock = 0;
+  let lockResets = 0;
+  let clearing = null;
+  let particles = [];
+  let landingEffects = [];
+  let gainPopups = [];
+  let shake = 0;
+  let displayX = 0;
+  let displayY = 0;
+  let visualTime = 0;
+
+  const held = new Map();
+
+  const boardCanvas = $("board");
+  const ctx = boardCanvas.getContext("2d");
+  const nextCanvas = $("next");
+  const nextCtx = nextCanvas.getContext("2d");
+  const ambientCanvas = $("ambient");
+  const ambientCtx = ambientCanvas.getContext("2d");
+  let boardWidth = 300;
+  let cell = 30;
+  let ambientW = innerWidth;
+  let ambientH = innerHeight;
+  let pixelRatio = 1;
+
+  function toast(message) {
+    clearTimeout(toastTimer);
+    $("toast").textContent = message;
+    $("toast").classList.add("visible");
+    toastTimer = setTimeout(() => $("toast").classList.remove("visible"), 3300);
+  }
+
+  function saveProgress() {
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(progress));
+      storageAvailable = true;
+    } catch {
+      storageAvailable = false;
+      if (!storageWarningShown) {
+        storageWarningShown = true;
+        toast("Браузер запретил сохранение. Прогресс доступен до закрытия страницы.");
+      }
+    }
+  }
+
+  function applyAccent() {
+    accent = palette.find(c => c.id === progress.color).hex;
+    const hex = accent.slice(1);
+    const rgb = [0, 2, 4].map(i => parseInt(hex.slice(i, i + 2), 16));
+    document.documentElement.style.setProperty("--accent", accent);
+    document.documentElement.style.setProperty("--accent-rgb", rgb.join(", "));
+    document.querySelector('meta[name="theme-color"]').content = "#080d19";
+  }
+
+  function updateUI() {
+    document.querySelectorAll("[data-coins]").forEach(el => el.textContent = number(progress.coins));
+    document.querySelectorAll("[data-xp]").forEach(el => el.textContent = number(progress.xp));
+    document.querySelectorAll("[data-level]").forEach(el => el.textContent = number(Math.floor(progress.xp / 1000)));
+
+    const part = progress.xp % 1000;
+    document.querySelectorAll("[data-progress]").forEach(el => el.style.width = (part / 10) + "%");
+    document.querySelectorAll("[data-progress-text]").forEach(el => el.textContent = number(part) + " / 1000 XP");
+
+    $("runLines").textContent = number(lines);
+    $("speedLabel").textContent = number(1 + Math.floor(lines / 10));
+  }
+
+  function renderPalette() {
+    $("palette").replaceChildren();
+    for (const color of palette) {
+      const button = document.createElement("button");
+      button.className = "color-card" + (color.id === progress.color ? " active" : "");
+      button.style.setProperty("--swatch", color.hex);
+      button.setAttribute("aria-label", color.name + ". Активировать за 15000 монет");
+      button.innerHTML =
+        '<span class="swatch" aria-hidden="true"></span>' +
+        '<span class="color-name"></span>' +
+        '<span class="color-price">◈ 15 000 / активация</span>' +
+        (color.id === progress.color ? '<span class="active-mark">АКТИВЕН</span>' : "");
+      button.querySelector(".color-name").textContent = color.name;
+      button.addEventListener("click", () => requestPurchase(color));
+      $("palette").append(button);
+    }
+  }
+
+  function requestPurchase(color) {
+    if (progress.coins < COLOR_PRICE) {
+      toast("Не хватает " + number(COLOR_PRICE - progress.coins) + " монет.");
+      return;
+    }
+    pendingColor = color;
+    $("buyDescription").textContent =
+      "Активировать «" + color.name + "»? С баланса будут списаны 15 000 монет." +
+      (color.id === progress.color ? " Этот цвет уже активен; повторная активация тоже платная." : "");
+    showModal("buyModal", "confirmBuy");
+  }
+
+  function showScreen(name) {
+    currentScreen = name;
+    const screens = {
+      menu: $("menuScreen"),
+      shop: $("shopScreen"),
+      game: $("gameScreen")
+    };
+    for (const [key, element] of Object.entries(screens)) {
+      element.hidden = key !== name;
+    }
+    if (name !== "game") held.clear();
+    if (name === "game") requestAnimationFrame(resizeCanvases);
+    if (name === "shop") renderPalette();
+  }
+
+  function showModal(id, focusId) {
+    held.clear();
+    previousFocus = document.activeElement;
+    $(id).hidden = false;
+    if (focusId) $(focusId).focus({ preventScroll: true });
+  }
+
+  function hideModal(id) {
+    $(id).hidden = true;
+    if (previousFocus && previousFocus.isConnected && previousFocus.getClientRects().length) {
+      previousFocus.focus({ preventScroll: true });
+    }
+  }
+
+  function activeModal() {
+    return [...document.querySelectorAll(".overlay")].find(el => !el.hidden);
+  }
+
+  function shuffledBag() {
+    const values = Object.keys(SHAPES);
+    for (let i = values.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [values[i], values[j]] = [values[j], values[i]];
+    }
+    return values;
+  }
+
+  function takeType() {
+    if (!bag.length) bag = shuffledBag();
+    return bag.pop();
+  }
+
+  function collides(matrix, x, y) {
+    for (let row = 0; row < matrix.length; row++) {
+      for (let col = 0; col < matrix[row].length; col++) {
+        if (!matrix[row][col]) continue;
+        const bx = x + col;
+        const by = y + row;
+        if (bx < 0 || bx >= COLS || by >= ROWS) return true;
+        if (by >= 0 && board[by][bx]) return true;
+      }
+    }
+    return false;
+  }
+
+  function spawnPiece() {
+    const type = nextType || takeType();
+    nextType = takeType();
+    const matrix = clone(SHAPES[type]);
+    player = {
+      type,
+      matrix,
+      x: Math.floor((COLS - matrix.length) / 2),
+      y: 0
+    };
+    displayX = player.x;
+    displayY = player.y;
+    dropClock = 0;
+    lockClock = 0;
+    lockResets = 0;
+    drawNext();
+    if (collides(matrix, player.x, player.y)) gameOver();
+  }
+
+  function startGame() {
+    for (const id of ["pauseModal", "overModal", "buyModal"]) $(id).hidden = true;
+    board = emptyBoard();
+    player = null;
+    nextType = null;
+    bag = [];
+    lines = 0;
+    dropClock = 0;
+    lockClock = 0;
+    lockResets = 0;
+    clearing = null;
+    particles = [];
+    landingEffects = [];
+    gainPopups = [];
+    shake = 0;
+    held.clear();
+    mode = "playing";
+    showScreen("game");
+    spawnPiece();
+    updateUI();
+  }
+
+  function grounded() {
+    return player && collides(player.matrix, player.x, player.y + 1);
+  }
+
+  function resetLockAfterMove(wasGrounded) {
+    if (wasGrounded && lockResets < 15) {
+      lockClock = 0;
+      lockResets++;
+    }
+  }
+
+  function move(dx) {
+    if (!player || clearing || mode !== "playing") return;
+    const wasGrounded = grounded();
+    if (!collides(player.matrix, player.x + dx, player.y)) {
+      player.x += dx;
+      resetLockAfterMove(wasGrounded);
+    }
+  }
+
+  function stepDown() {
+    if (!player || clearing || mode !== "playing") return false;
+    if (!collides(player.matrix, player.x, player.y + 1)) {
+      player.y++;
+      lockClock = 0;
+      return true;
+    }
+    return false;
+  }
+
+  function rotated(matrix, direction) {
+    const n = matrix.length;
+    return Array.from({ length: n }, (_, y) =>
+      Array.from({ length: n }, (_, x) =>
+        direction > 0 ? matrix[n - 1 - x][y] : matrix[x][n - 1 - y]
+      )
+    );
+  }
+
+  function rotate(direction = 1) {
+    if (!player || clearing || mode !== "playing" || player.type === "O") return;
+    const matrix = rotated(player.matrix, direction);
+    const wasGrounded = grounded();
+    const kicks = [
+      [0,0], [-1,0], [1,0], [-2,0], [2,0],
+      [0,-1], [-1,-1], [1,-1], [0,-2], [-2,-1], [2,-1]
+    ];
+    for (const [dx, dy] of kicks) {
+      if (!collides(matrix, player.x + dx, player.y + dy)) {
+        player.matrix = matrix;
+        player.x += dx;
+        player.y += dy;
+        resetLockAfterMove(wasGrounded);
+        return;
+      }
+    }
+  }
+
+  function hardDrop() {
+    if (!player || clearing || mode !== "playing") return;
+    while (!collides(player.matrix, player.x, player.y + 1)) player.y++;
+    displayX = player.x;
+    displayY = player.y;
+    shake = reducedMotion ? 0 : 1;
+    lockPiece();
+  }
+
+  function addSparks(x, y, color, count = 7) {
+    for (let i = 0; i < count; i++) {
+      const angle = Math.random() * Math.PI * 2;
+      const speed = 1 + Math.random() * 4;
+      const life = .35 + Math.random() * .5;
+      particles.push({
+        x, y,
+        vx: Math.cos(angle) * speed,
+        vy: Math.sin(angle) * speed - 1,
+        color,
+        life,
+        maxLife: life,
+        size: .04 + Math.random() * .1
+      });
+    }
+    if (particles.length > 420) particles.splice(0, particles.length - 420);
+  }
+
+  function lockPiece() {
+    if (!player) return;
+    let above = false;
+    const lockedType = player.type;
+    let bottom = 0;
+
+    player.matrix.forEach((row, y) => row.forEach((filled, x) => {
+      if (!filled) return;
+      const by = player.y + y;
+      const bx = player.x + x;
+      if (by < 0) above = true;
+      else {
+        board[by][bx] = lockedType;
+        bottom = Math.max(bottom, by);
+      }
+    }));
+
+    if (above) {
+      player = null;
+      gameOver();
+      return;
+    }
+
+    landingEffects.push({
+      x: player.x + player.matrix.length / 2,
+      y: bottom + 1,
+      life: .25
+    });
+
+    const fullRows = [];
+    for (let y = 0; y < ROWS; y++) {
+      if (board[y].every(Boolean)) fullRows.push(y);
+    }
+
+    player = null;
+    dropClock = 0;
+    lockClock = 0;
+
+    if (fullRows.length) {
+      // Точные награды: ровно 100 монет и 100 XP за каждую линию.
+      const reward = fullRows.length * 100;
+      lines += fullRows.length;
+      progress.coins += reward;
+      progress.xp += reward;
+      saveProgress();
+      updateUI();
+
+      clearing = { rows: fullRows, time: 0, duration: .44 };
+      const centerY = fullRows.reduce((sum, y) => sum + y, 0) / fullRows.length;
+      gainPopups.push({
+        text: "+" + reward + " ◈  /  +" + reward + " XP",
+        y: centerY + .5,
+        life: 1.25
+      });
+
+      for (const y of fullRows) {
+        for (let x = 0; x < COLS; x++) {
+          addSparks(x + .5, y + .5, BLOCK_COLORS[board[y][x]], reducedMotion ? 2 : 6);
+        }
+      }
+    } else {
+      spawnPiece();
+    }
+  }
+
+  function finishClear() {
+    const removed = new Set(clearing.rows);
+    board = board.filter((_, index) => !removed.has(index));
+    while (board.length < ROWS) board.unshift(Array(COLS).fill(null));
+    clearing = null;
+    spawnPiece();
+  }
+
+  function gameOver() {
+    mode = "over";
+    held.clear();
+    saveProgress();
+    updateUI();
+    $("resultLines").textContent = number(lines);
+    $("resultEarned").textContent =
+      "+" + number(lines * 100) + " монет · +" + number(lines * 100) + " XP";
+    showModal("overModal", "againButton");
+  }
+
+  function pauseGame() {
+    if (mode !== "playing") return;
+    mode = "paused";
+    held.clear();
+    showModal("pauseModal", "resumeButton");
+  }
+
+  function resumeGame() {
+    if (mode !== "paused") return;
+    hideModal("pauseModal");
+    held.clear();
+    mode = "playing";
+  }
+
+  function returnToMenu() {
+    mode = "menu";
+    held.clear();
+    $("pauseModal").hidden = true;
+    $("overModal").hidden = true;
+    clearing = null;
+    player = null;
+    saveProgress();
+    updateUI();
+    showScreen("menu");
+    $("playButton").focus({ preventScroll: true });
+  }
+
+  function performAction(action) {
+    if (mode !== "playing" || activeModal()) return;
+    switch (action) {
+      case "left": move(-1); break;
+      case "right": move(1); break;
+      case "down": stepDown(); break;
+      case "rotate": rotate(1); break;
+      case "reverse": rotate(-1); break;
+      case "hard": hardDrop(); break;
+    }
+  }
+
+  function beginHold(token, action) {
+    if (mode !== "playing" || activeModal() || held.has(token)) return;
+    performAction(action);
+    if (["left", "right", "down"].includes(action)) {
+      held.set(token, { action, timer: action === "down" ? .045 : .15 });
+    }
+  }
+
+  function updateHeld(dt) {
+    for (const entry of held.values()) {
+      entry.timer -= dt;
+      if (entry.timer <= 0) {
+        performAction(entry.action);
+        entry.timer += entry.action === "down" ? .045 : .055;
+      }
+    }
+  }
+
+  const keyboardActions = {
+    ArrowLeft: "left",
+    ArrowRight: "right",
+    ArrowDown: "down",
+    ArrowUp: "rotate",
+    KeyX: "rotate",
+    KeyZ: "reverse",
+    Space: "hard"
+  };
+
+  document.addEventListener("keydown", event => {
+    const modal = activeModal();
+
+    // Удерживаем Tab внутри открытого диалога.
+    if (modal && event.key === "Tab") {
+      const focusable = [...modal.querySelectorAll("button:not([disabled])")];
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      if (event.shiftKey && (document.activeElement === first || !modal.contains(document.activeElement))) {
+        event.preventDefault();
+        last?.focus();
+      } else if (!event.shiftKey && (document.activeElement === last || !modal.contains(document.activeElement))) {
+        event.preventDefault();
+        first?.focus();
+      }
+      return;
+    }
+
+    if (modal) {
+      if (event.code === "Escape" && modal.id === "buyModal") {
+        event.preventDefault();
+        hideModal("buyModal");
+      } else if (
+        !event.repeat &&
+        (event.code === "Escape" || event.code === "KeyP") &&
+        modal.id === "pauseModal"
+      ) {
+        event.preventDefault();
+        resumeGame();
+      }
+      return;
+    }
+
+    if (currentScreen !== "game") return;
+
+    if (event.code === "KeyP" || event.code === "Escape") {
+      event.preventDefault();
+      if (!event.repeat) pauseGame();
+      return;
+    }
+
+    const action = keyboardActions[event.code];
+    if (!action) return;
+    event.preventDefault();
+    if (event.repeat) return;
+    beginHold(event.code, action);
+  });
+
+  document.addEventListener("keyup", event => held.delete(event.code));
+
+  document.querySelectorAll("[data-action]").forEach(button => {
+    button.addEventListener("contextmenu", event => event.preventDefault());
+    button.addEventListener("pointerdown", event => {
+      if (event.button !== 0) return;
+      event.preventDefault();
+      try { button.setPointerCapture(event.pointerId); } catch {}
+      beginHold("pointer-" + event.pointerId, button.dataset.action);
+    });
+    const release = event => held.delete("pointer-" + event.pointerId);
+    button.addEventListener("pointerup", release);
+    button.addEventListener("pointercancel", release);
+    button.addEventListener("lostpointercapture", release);
+  });
+
+  window.addEventListener("pointerup", event => held.delete("pointer-" + event.pointerId));
+  window.addEventListener("blur", () => {
+    held.clear();
+    pauseGame();
+  });
+  document.addEventListener("visibilitychange", () => {
+    if (document.hidden) {
+      held.clear();
+      pauseGame();
+      saveProgress();
+    }
+  });
+
+  $("playButton").onclick = startGame;
+  $("againButton").onclick = startGame;
+  $("shopButton").onclick = () => showScreen("shop");
+  $("shopBack").onclick = () => showScreen("menu");
+  $("pauseButton").onclick = pauseGame;
+  $("resumeButton").onclick = resumeGame;
+  $("pauseMenuButton").onclick = returnToMenu;
+  $("overMenuButton").onclick = returnToMenu;
+
+  $("introContinue").onclick = () => {
+    hideModal("introModal");
+    $("playButton").focus({ preventScroll: true });
+    if (!storageAvailable) {
+      toast("Сохранение недоступно: разреши localStorage в настройках браузера.");
+    }
+  };
+
+  $("cancelBuy").onclick = () => hideModal("buyModal");
+  $("confirmBuy").onclick = () => {
+    if (!pendingColor) return;
+    if (progress.coins < COLOR_PRICE) {
+      hideModal("buyModal");
+      toast("Недостаточно монет.");
+      return;
+    }
+    // Оплата при КАЖДОЙ активации, включая повторную.
+    progress.coins -= COLOR_PRICE;
+    progress.color = pendingColor.id;
+    const name = pendingColor.name;
+    pendingColor = null;
+    applyAccent();
+    saveProgress();
+    updateUI();
+    hideModal("buyModal");
+    renderPalette();
+    toast(name + " активирован. −15 000 монет.");
+  };
+
+  function detectDevice() {
+    mobile =
+      matchMedia("(max-width: 760px)").matches ||
+      matchMedia("(pointer: coarse)").matches ||
+      (navigator.maxTouchPoints > 0 && innerWidth <= 1100);
+
+    document.body.classList.toggle("mobile", mobile);
+    $("deviceBadge").textContent = mobile ? "TOUCH EDITION" : "KEYBOARD EDITION";
+
+    // На телефоне окно с клавиатурой не показываем.
+    if (mobile && !$("introModal").hidden) hideModal("introModal");
+  }
+
+  function resizeCanvases() {
+    pixelRatio = Math.min(window.devicePixelRatio || 1, 2);
+    ambientW = innerWidth;
+    ambientH = innerHeight;
+    ambientCanvas.width = Math.round(ambientW * pixelRatio);
+    ambientCanvas.height = Math.round(ambientH * pixelRatio);
+    ambientCtx.setTransform(pixelRatio, 0, 0, pixelRatio, 0, 0);
+
+    const rect = boardCanvas.getBoundingClientRect();
+    if (rect.width > 0 && rect.height > 0) {
+      boardWidth = rect.width;
+      cell = boardWidth / COLS;
+      boardCanvas.width = Math.round(rect.width * pixelRatio);
+      boardCanvas.height = Math.round(rect.height * pixelRatio);
+      ctx.setTransform(pixelRatio, 0, 0, pixelRatio, 0, 0);
+    }
+
+    nextCanvas.width = Math.round(120 * pixelRatio);
+    nextCanvas.height = Math.round(100 * pixelRatio);
+    nextCtx.setTransform(pixelRatio, 0, 0, pixelRatio, 0, 0);
+    drawNext();
+  }
+
+  let resizeQueued = false;
+  window.addEventListener("resize", () => {
+    if (resizeQueued) return;
+    resizeQueued = true;
+    requestAnimationFrame(() => {
+      resizeQueued = false;
+      detectDevice();
+      resizeCanvases();
+    });
+  });
+
+  if ("ResizeObserver" in window) {
+    new ResizeObserver(() => {
+      if (currentScreen === "game") resizeCanvases();
+    }).observe(document.querySelector(".board-shell"));
+  }
+
+  function roundedPath(context, x, y, w, h, r) {
+    r = Math.max(0, Math.min(r, w / 2, h / 2));
+    context.beginPath();
+    context.moveTo(x + r, y);
+    context.arcTo(x + w, y, x + w, y + h, r);
+    context.arcTo(x + w, y + h, x, y + h, r);
+    context.arcTo(x, y + h, x, y, r);
+    context.arcTo(x, y, x + w, y, r);
+    context.closePath();
+  }
+
+  function drawBlock(context, x, y, size, color, alpha = 1, active = false, scale = 1) {
+    if (alpha <= 0 || scale <= 0) return;
+    const gap = Math.max(1.1, size * .07);
+    const extent = (size - gap * 2) * scale;
+    const bx = x + (size - extent) / 2;
+    const by = y + (size - extent) / 2;
+
+    context.save();
+    context.globalAlpha = alpha;
+    context.shadowColor = color;
+    context.shadowBlur = active ? size * .5 : size * .17;
+    context.fillStyle = color;
+    roundedPath(context, bx, by, extent, extent, size * .13);
+    context.fill();
+    context.shadowBlur = 0;
+
+    const gradient = context.createLinearGradient(bx, by, bx, by + extent);
+    gradient.addColorStop(0, "rgba(255,255,255,.32)");
+    gradient.addColorStop(.45, "rgba(255,255,255,.02)");
+    gradient.addColorStop(1, "rgba(0,0,0,.28)");
+    context.fillStyle = gradient;
+    context.fill();
+
+    context.strokeStyle = "rgba(255,255,255,.37)";
+    context.lineWidth = Math.max(.7, size * .025);
+    context.stroke();
+    context.restore();
+  }
+
+  function drawNext() {
+    nextCtx.clearRect(0, 0, 120, 100);
+    if (!nextType) return;
+    const matrix = SHAPES[nextType];
+    const occupied = [];
+    matrix.forEach((row, y) => row.forEach((filled, x) => {
+      if (filled) occupied.push([x, y]);
+    }));
+    const minX = Math.min(...occupied.map(p => p[0]));
+    const maxX = Math.max(...occupied.map(p => p[0]));
+    const minY = Math.min(...occupied.map(p => p[1]));
+    const maxY = Math.max(...occupied.map(p => p[1]));
+    const size = 24;
+    const offsetX = (120 - (maxX - minX + 1) * size) / 2;
+    const offsetY = (100 - (maxY - minY + 1) * size) / 2;
+    for (const [x, y] of occupied) {
+      drawBlock(
+        nextCtx,
+        offsetX + (x - minX) * size,
+        offsetY + (y - minY) * size,
+        size,
+        BLOCK_COLORS[nextType],
+        1,
+        true
+      );
+    }
+  }
+
+  function drawAmbient(time) {
+    const c = ambientCtx;
+    c.clearRect(0, 0, ambientW, ambientH);
+    c.fillStyle = "#080d19";
+    c.fillRect(0, 0, ambientW, ambientH);
+
+    const motion = reducedMotion ? 0 : time;
+    const x = ambientW * (.25 + Math.sin(motion * .12) * .08);
+    const y = ambientH * (.3 + Math.cos(motion * .1) * .1);
+    const radius = Math.max(ambientW, ambientH) * .7;
+    const glow = c.createRadialGradient(x, y, 0, x, y, radius);
+    glow.addColorStop(0, accent + "17");
+    glow.addColorStop(.65, "#11254e0a");
+    glow.addColorStop(1, "#080d1900");
+    c.fillStyle = glow;
+    c.fillRect(0, 0, ambientW, ambientH);
+
+    const second = c.createRadialGradient(
+      ambientW * .85, ambientH * .8, 0,
+      ambientW * .85, ambientH * .8, radius * .65
+    );
+    second.addColorStop(0, "#974aff10");
+    second.addColorStop(1, "#974aff00");
+    c.fillStyle = second;
+    c.fillRect(0, 0, ambientW, ambientH);
+
+    const spacing = 55;
+    const offset = (motion * 7) % spacing;
+    c.strokeStyle = "rgba(127,164,224,.045)";
+    c.lineWidth = 1;
+    c.beginPath();
+    for (let gx = -spacing + offset; gx < ambientW + spacing; gx += spacing) {
+      c.moveTo(gx, 0);
+      c.lineTo(gx, ambientH);
+    }
+    for (let gy = -spacing + offset; gy < ambientH + spacing; gy += spacing) {
+      c.moveTo(0, gy);
+      c.lineTo(ambientW, gy);
+    }
+    c.stroke();
+
+    c.fillStyle = accent;
+    for (let i = 0; i < 22; i++) {
+      const sx = ((i * 173.73 + Math.sin(i * 4.2) * 100) % ambientW + ambientW) % ambientW;
+      const sy = ((i * 137.19 - motion * (3 + i % 4)) % ambientH + ambientH) % ambientH;
+      c.globalAlpha = .1 + .13 * (Math.sin(motion * .8 + i) + 1) / 2;
+      c.fillRect(sx, sy, 1.5, 1.5);
+    }
+    c.globalAlpha = 1;
+  }
+
+  function drawBoard() {
+    const w = boardWidth;
+    const h = cell * ROWS;
+    ctx.clearRect(0, 0, w, h);
+
+    const background = ctx.createLinearGradient(0, 0, 0, h);
+    background.addColorStop(0, "#0c1526");
+    background.addColorStop(1, "#070c17");
+    ctx.fillStyle = background;
+    ctx.fillRect(0, 0, w, h);
+
+    ctx.save();
+    if (shake > 0 && !reducedMotion) {
+      ctx.translate(Math.sin(visualTime * 90) * shake * 2, 0);
+    }
+
+    ctx.strokeStyle = "rgba(125,164,215,.065)";
+    ctx.lineWidth = .7;
+    ctx.beginPath();
+    for (let x = 1; x < COLS; x++) {
+      ctx.moveTo(x * cell, 0);
+      ctx.lineTo(x * cell, h);
+    }
+    for (let y = 1; y < ROWS; y++) {
+      ctx.moveTo(0, y * cell);
+      ctx.lineTo(w, y * cell);
+    }
+    ctx.stroke();
+
+    const clearSet = new Set(clearing ? clearing.rows : []);
+    const clearProgress = clearing ? clearing.time / clearing.duration : 0;
+
+    for (let y = 0; y < ROWS; y++) {
+      for (let x = 0; x < COLS; x++) {
+        const type = board[y][x];
+        if (!type) continue;
+        const vanishing = clearSet.has(y);
+        const alpha = vanishing ? 1 - Math.pow(clearProgress, 1.5) : 1;
+        const scale = vanishing ? 1 - clearProgress * .72 : 1;
+        drawBlock(ctx, x * cell, y * cell, cell, BLOCK_COLORS[type], alpha, false, scale);
+      }
+    }
+
+    if (player && !clearing) {
+      let ghostY = player.y;
+      while (!collides(player.matrix, player.x, ghostY + 1)) ghostY++;
+
+      ctx.save();
+      ctx.strokeStyle = BLOCK_COLORS[player.type];
+      ctx.globalAlpha = .28;
+      ctx.lineWidth = 1.2;
+      ctx.setLineDash([cell * .13, cell * .1]);
+      player.matrix.forEach((row, y) => row.forEach((filled, x) => {
+        if (!filled) return;
+        roundedPath(
+          ctx,
+          (player.x + x) * cell + cell * .12,
+          (ghostY + y) * cell + cell * .12,
+          cell * .76,
+          cell * .76,
+          cell * .1
+        );
+        ctx.stroke();
+      }));
+      ctx.restore();
+
+      player.matrix.forEach((row, y) => row.forEach((filled, x) => {
+        if (filled) {
+          drawBlock(
+            ctx,
+            (displayX + x) * cell,
+            (displayY + y) * cell,
+            cell,
+            BLOCK_COLORS[player.type],
+            1,
+            true
+          );
+        }
+      }));
+    }
+
+    if (clearing) {
+      for (const y of clearing.rows) {
+        const opacity = Math.pow(1 - clearProgress, 2) * .75;
+        ctx.fillStyle = "rgba(232,252,255," + opacity + ")";
+        ctx.shadowColor = accent;
+        ctx.shadowBlur = 22;
+        ctx.fillRect(0, y * cell + cell * clearProgress * .25, w, cell * (1 - clearProgress * .5));
+        ctx.shadowBlur = 0;
+      }
+    }
+
+    for (const effect of landingEffects) {
+      const t = effect.life / .25;
+      ctx.strokeStyle = accent;
+      ctx.globalAlpha = t * .55;
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.ellipse(
+        effect.x * cell,
+        effect.y * cell,
+        (1 - t) * cell * 2 + cell * .5,
+        cell * .12,
+        0, 0, Math.PI * 2
+      );
+      ctx.stroke();
+    }
+    ctx.globalAlpha = 1;
+
+    for (const p of particles) {
+      ctx.globalAlpha = Math.max(0, p.life / p.maxLife);
+      ctx.fillStyle = p.color;
+      const size = Math.max(1.2, p.size * cell);
+      ctx.fillRect(p.x * cell - size / 2, p.y * cell - size / 2, size, size);
+    }
+    ctx.globalAlpha = 1;
+    ctx.restore();
+
+    for (const popup of gainPopups) {
+      const elapsed = 1.25 - popup.life;
+      const opacity = Math.min(1, popup.life * 3);
+      ctx.save();
+      ctx.globalAlpha = opacity;
+      ctx.textAlign = "center";
+      ctx.font = "800 " + Math.max(12, cell * .48) + "px system-ui";
+      ctx.shadowColor = accent;
+      ctx.shadowBlur = 14;
+      ctx.fillStyle = "#f4fdff";
+      ctx.fillText(popup.text, w / 2, clamp(popup.y * cell - elapsed * cell, cell, h - cell));
+      ctx.restore();
+    }
+  }
+
+  function updateEffects(dt) {
+    for (const p of particles) {
+      p.life -= dt;
+      p.x += p.vx * dt;
+      p.y += p.vy * dt;
+      p.vy += 7 * dt;
+    }
+    particles = particles.filter(p => p.life > 0);
+
+    for (const effect of landingEffects) effect.life -= dt;
+    landingEffects = landingEffects.filter(effect => effect.life > 0);
+
+    for (const popup of gainPopups) popup.life -= dt;
+    gainPopups = gainPopups.filter(popup => popup.life > 0);
+
+    shake = Math.max(0, shake - dt * 6);
+  }
+
+  function updateGame(dt) {
+    updateEffects(dt);
+    updateHeld(dt);
+
+    if (clearing) {
+      clearing.time += dt;
+      if (clearing.time >= clearing.duration) finishClear();
+      return;
+    }
+    if (!player || mode !== "playing") return;
+
+    // Таймер автопадения использует время кадров, а не частоту FPS.
+    const interval = Math.max(.1, .85 * Math.pow(.83, Math.floor(lines / 10)));
+    dropClock += dt;
+    if (dropClock >= interval) {
+      dropClock %= interval;
+      stepDown();
+    }
+
+    if (grounded()) {
+      lockClock += dt;
+      if (lockClock >= .45) lockPiece();
+    } else {
+      lockClock = 0;
+    }
+
+    if (player) {
+      const smooth = reducedMotion ? 1 : 1 - Math.exp(-dt * 32);
+      displayX += (player.x - displayX) * smooth;
+      displayY += (player.y - displayY) * smooth;
+    }
+  }
+
+  let lastFrame = 0;
+  let lastAmbientFrame = 0;
+
+  function frame(timestamp) {
+    const dt = lastFrame ? Math.min((timestamp - lastFrame) / 1000, .04) : 0;
+    lastFrame = timestamp;
+    visualTime += dt;
+
+    // Фон обновляется до 30 FPS; игровое поле — с частотой дисплея.
+    if (timestamp - lastAmbientFrame >= 1000 / 30) {
+      drawAmbient(timestamp / 1000);
+      lastAmbientFrame = timestamp;
+    }
+
+    if (currentScreen === "game") {
+      if (mode === "playing") updateGame(dt);
+      else if (mode === "over") updateEffects(dt);
+      drawBoard();
+    }
+
+    requestAnimationFrame(frame);
+  }
+
+  applyAccent();
+  updateUI();
+  renderPalette();
+  detectDevice();
+  resizeCanvases();
+
+  // На ПК показывается при КАЖДОЙ загрузке страницы.
+  // Флаг "уже видел" намеренно не сохраняется.
+  if (!mobile) {
+    showModal("introModal", "introContinue");
+  } else if (!storageAvailable) {
+    toast("Сохранение недоступно: разреши localStorage в настройках браузера.");
+  }
+
+  window.addEventListener("pagehide", saveProgress);
+  requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>
